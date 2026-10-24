@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<title>Assignment 2</title>
+<style>
+  * { box-sizing: border-box; }
+
+  :root[data-theme="dark"] {
+    --bg: #0f1115;
+    --bg-sidebar: #14161b;
+    --bg-header: #14161b;
+    --bg-hover: #1d2027;
+    --bg-active: #232733;
+    --border: #262a33;
+    --text-primary: #e8e9ec;
+    --text-secondary: #9a9da6;
+    --text-muted: #6b6e77;
+    --accent: #4d84c4;
+    --accent-text: #ffffff;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  :root[data-theme="light"] {
+    --bg: #f5f6f8;
+    --bg-sidebar: #ffffff;
+    --bg-header: #ffffff;
+    --bg-hover: #f0f1f4;
+    --bg-active: #e8edf5;
+    --border: #e2e4e9;
+    --text-primary: #1c1e24;
+    --text-secondary: #5b5e68;
+    --text-muted: #9296a1;
+    --accent: #2f6fb0;
+    --accent-text: #ffffff;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 250px;
+    flex-shrink: 0;
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    transition: width 0.18s ease, opacity 0.18s ease;
+  }
+
+  .sidebar.collapsed {
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+    border-right: none;
+  }
+
+  .sidebar-header {
+    padding: 20px 18px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .sidebar-header .brand {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 2px;
+    letter-spacing: -0.01em;
+  }
+
+  .sidebar-header .subtitle {
+    font-size: 15px;
+    color: var(--text-muted);
+  }
+
+  .nav-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 0 16px;
+  }
+
+  .part {
+    margin-bottom: 4px;
+  }
+
+  .part-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .part-title:hover {
+    color: var(--text-primary);
+  }
+
+  .part-title .chevron {
+    transition: transform 0.15s ease;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .part.collapsed .chevron {
+    transform: rotate(-90deg);
+  }
+
+  .part.collapsed .sub-list {
+    display: none;
+  }
+
+  .sub-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .sub-list li a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px 8px 30px;
+    font-size: 15px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    white-space: nowrap;
+  }
+
+  .sub-list li a:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .sub-list li a.active {
+    background: var(--bg-active);
+    border-left-color: var(--accent);
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  /* ---------- Main content ---------- */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-header);
+    flex-shrink: 0;
+  }
+
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    min-width: 0;
+  }
+
+  .toolbar-left .crumb-part {
+    color: var(--text-muted);
+  }
+
+  .icon-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 15px;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+
+  .icon-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .content-frame-wrap {
+    flex: 1;
+    min-height: 0;
+  }
+
+  iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: var(--bg);
+  }
+
+  .placeholder {
+    padding: 60px 40px;
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 480px;
+  }
+
+.theme-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+</style>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <p class="brand">EAE2122</p>
+    <p class="subtitle">Assignment 2</p>
+  </div>
+  <div class="nav-scroll" id="navScroll"></div>
+</nav>
+
+<div class="main">
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <button class="icon-btn" id="sidebarToggle" title="Toggle sidebar" aria-label="Toggle sidebar">☰</button>
+      <span id="mainHeader"></span>
+    </div>
+    <div class="toolbar-right">
+      <span class="theme-label">Dark/light mode</span>
+      <button class="icon-btn" id="themeToggle" title="Toggle light/dark mode" aria-label="Toggle theme">◐</button>    
+    </div>
+  </div>
+  <div class="content-frame-wrap" id="contentWrap">
+    <iframe id="contentFrame" src=""></iframe>
+  </div>
+</div>
+
+<script>
+  // ---- CONFIGURE THE MENU STRUCTURE HERE ----
+  // Each "part" is a top-level section in the sidebar.
+  // Each item needs a label and a src pointing to the HTML page to embed.
+  // Leave src as '' (empty string) for a sub-item you haven't built yet —
+  // it'll show a placeholder instead of a blank iframe.
+  const MENU = [
+    {
+      title: 'Introduction',
+      items: [
+        { label: 'Instructions', src: 'instructions.html' },
+      ]
+    },
+    {
+      title: 'Part I: Forecast',
+      items: [
+        { label: 'Synoptic charts', src: 'synoptic.html' },
+        { label: 'Thunderstorm parameters', src: 'regional.html' },
+      ]
+    },
+    {
+      title: 'Part II: Verification',
+      items: [
+        { label: 'Observations', src: 'observations.html' },
+        { label: 'Radar', src: 'radar.html' }
+      ]
+    }
+  ];
+  // --------------------------------------------
+
+  const navScroll = document.getElementById('navScroll');
+  const mainHeader = document.getElementById('mainHeader');
+  const sidebar = document.getElementById('sidebar');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const themeToggle = document.getElementById('themeToggle');
+
+  MENU.forEach((part, partIdx) => {
+    const partEl = document.createElement('div');
+    partEl.className = 'part';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'part-title';
+    titleEl.innerHTML = `<span>${part.title}</span><span class="chevron">▾</span>`;
+    titleEl.addEventListener('click', () => {
+      partEl.classList.toggle('collapsed');
+    });
+    partEl.appendChild(titleEl);
+
+    const listEl = document.createElement('ul');
+    listEl.className = 'sub-list';
+
+    part.items.forEach((item, itemIdx) => {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = '#';
+      a.textContent = item.label;
+      a.dataset.part = part.title;
+      a.dataset.label = item.label;
+      a.dataset.src = item.src;
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        selectItem(a);
+      });
+      li.appendChild(a);
+      listEl.appendChild(li);
+
+      if (partIdx === 0 && itemIdx === 0) {
+        setTimeout(() => selectItem(a), 0);
+      }
+    });
+
+    partEl.appendChild(listEl);
+    navScroll.appendChild(partEl);
+  });
+
+  function selectItem(a) {
+    document.querySelectorAll('.sub-list a').forEach(el => el.classList.remove('active'));
+    a.classList.add('active');
+
+    mainHeader.innerHTML = `<span class="crumb-part">${a.dataset.part}</span> &nbsp;/&nbsp; ${a.dataset.label}`;
+
+    const src = a.dataset.src;
+    const wrap = document.getElementById('contentWrap');
+    if (src) {
+      const theme = document.documentElement.getAttribute('data-theme');
+      const separator = src.includes('?') ? '&' : '?';
+      wrap.innerHTML = '<iframe id="contentFrame" src="' + src + separator + 'theme=' + theme + '"></iframe>';
+    } else {
+      wrap.innerHTML = `<div class="placeholder">No page configured yet for "${a.dataset.label}". Set its "src" in the MENU config to point at an HTML file.</div>`;
+    }
+  }
+
+  // ---- Sidebar collapse ----
+  sidebarToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+  });
+
+  // ---- Theme toggle ----
+  const root = document.documentElement;
+  themeToggle.addEventListener('click', () => {
+    const current = root.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+
+    const frame = document.getElementById('contentFrame');
+    if (frame && frame.contentWindow) {
+      frame.contentWindow.postMessage({ theme: next }, '*');
+    }
+  });
+</script>
+
+</body>
+</html>

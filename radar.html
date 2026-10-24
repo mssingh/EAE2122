@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<title>Frame viewer</title>
+<style>
+  * { box-sizing: border-box; }
+
+  :root[data-theme="dark"] {
+    --bg: #0f1115;
+    --panel-bg: #14161b;
+    --border: #262a33;
+    --text-primary: #e8e9ec;
+    --text-secondary: #9a9da6;
+    --text-muted: #6b6e77;
+    --accent: #4d84c4;
+    --video-bg: #ffffff;
+    --btn-bg: #1d2027;
+    --btn-hover: #262a33;
+  }
+
+  :root[data-theme="light"] {
+    --bg: #f5f6f8;
+    --panel-bg: #ffffff;
+    --border: #e2e4e9;
+    --text-primary: #1c1e24;
+    --text-secondary: #5b5e68;
+    --text-muted: #9296a1;
+    --accent: #2f6fb0;
+    --video-bg: #ffffff;
+    --btn-bg: #eef0f3;
+    --btn-hover: #e2e4e9;
+  }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    padding: 20px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .video-wrap {
+    width: 95%;
+    max-width: 1000px;
+    aspect-ratio: 0.85648574;
+    background: var(--video-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    margin: 0 auto;
+  }
+
+  video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    background: var(--video-bg);
+  }
+
+  .controls {
+    width: 70%;
+    max-width: 700px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px auto 0;
+    color: var(--text-primary);
+  }
+
+  button {
+    background: var(--btn-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.12s ease;
+  }
+  button:hover { background: var(--btn-hover); }
+  button:active { transform: scale(0.97); }
+
+  #playBtn, #prevBtn, #nextBtn {
+    width: 90px;
+    height: 36px;
+    line-height: 1;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  input[type="range"] {
+    flex: 1;
+  }
+
+  .frame-label {
+    min-width: 90px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  select {
+    background: var(--btn-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    color: var(--text-primary);
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0 0 28px;
+  }
+
+</style>
+</head>
+<body>
+
+<h1>Radar loop</h1>
+
+
+<div class="video-wrap">
+  <video id="vid" src="Figures/radar/radar_loop.mp4" preload="auto" playsinline muted></video>
+</div>
+
+<div class="controls">
+  <button id="playBtn">Play</button>
+  <button id="prevBtn">◀ Frame</button>
+  <button id="nextBtn">Frame ▶</button>
+  <input type="range" id="scrub" min="0" max="0" value="0" step="1">
+  <span class="frame-label" id="frameLabel">Frame 0 / 0</span>
+  <select id="speedSelect">
+    <option value="0.1">0.1×</option>
+    <option value="0.25">0.25×</option>
+    <option value="0.5">0.5×</option>
+    <option value="1" selected>1×</option>
+    <option value="1.5">1.5×</option>
+    <option value="2">2×</option>
+  </select>
+</div>
+
+<script>
+  // ---- CONFIGURE THESE TO MATCH YOUR ENCODE ----
+  const FPS = 10;          // must match the -framerate value you encoded with
+  const TOTAL_FRAMES = 288; // total number of source PNG frames
+  // ------------------------------------------------
+
+  const vid = document.getElementById('vid');
+  const playBtn = document.getElementById('playBtn');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const scrub = document.getElementById('scrub');
+  const frameLabel = document.getElementById('frameLabel');
+  const speedSelect = document.getElementById('speedSelect');
+  const frameTime = 1 / FPS;
+
+  scrub.max = TOTAL_FRAMES - 1;
+
+  speedSelect.addEventListener('change', () => {
+    vid.playbackRate = Number(speedSelect.value);
+  });
+
+  function currentFrame() {
+    return Math.round(vid.currentTime / frameTime);
+  }
+
+  function updateUI() {
+    const f = Math.min(currentFrame(), TOTAL_FRAMES - 1);
+    scrub.value = f;
+    frameLabel.textContent = `Frame ${f} / ${TOTAL_FRAMES - 1}`;
+  }
+
+  function goToFrame(f) {
+    f = Math.max(0, Math.min(TOTAL_FRAMES - 1, f));
+    vid.pause();
+    vid.currentTime = f * frameTime;
+    playBtn.textContent = 'Play';
+    updateUI();
+  }
+
+  prevBtn.addEventListener('click', () => goToFrame(currentFrame() - 1));
+  nextBtn.addEventListener('click', () => goToFrame(currentFrame() + 1));
+
+  scrub.addEventListener('input', () => {
+    vid.pause();
+    playBtn.textContent = 'Play';
+    vid.currentTime = Number(scrub.value) * frameTime;
+    frameLabel.textContent = `Frame ${scrub.value} / ${TOTAL_FRAMES - 1}`;
+  });
+
+  playBtn.addEventListener('click', () => {
+    if (vid.paused) {
+      vid.play();
+      playBtn.textContent = 'Pause';
+    } else {
+      vid.pause();
+      playBtn.textContent = 'Play';
+    }
+  });
+
+  vid.addEventListener('timeupdate', () => {
+    if (!vid.paused) updateUI();
+  });
+
+  vid.addEventListener('ended', () => {
+    playBtn.textContent = 'Play';
+  });
+
+  vid.addEventListener('loadedmetadata', updateUI);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') goToFrame(currentFrame() + 1);
+    if (e.key === 'ArrowLeft') goToFrame(currentFrame() - 1);
+  });
+
+  // ---- Theme inheritance from parent page (template.html) ----
+  // 1) Initial theme via ?theme=light|dark query param set by the parent when it creates this iframe.
+  const params = new URLSearchParams(window.location.search);
+  const initialTheme = params.get('theme');
+  if (initialTheme === 'light' || initialTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', initialTheme);
+  }
+
+  // 2) Live updates via postMessage, so toggling theme in the parent
+  //    updates this page immediately without reloading the iframe.
+  window.addEventListener('message', (event) => {
+    if (event.data && (event.data.theme === 'light' || event.data.theme === 'dark')) {
+      document.documentElement.setAttribute('data-theme', event.data.theme);
+    }
+  });
+</script>
+
+</body>
+</html>

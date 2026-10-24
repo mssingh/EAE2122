@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<title>Synoptic map comparison</title>
+<style>
+  * { box-sizing: border-box; }
+
+  :root[data-theme="dark"] {
+    --bg: #0f1115;
+    --panel-bg: #14161b;
+    --border: #262a33;
+    --text-primary: #e8e9ec;
+    --text-secondary: #9a9da6;
+    --text-muted: #6b6e77;
+    --accent: #4d84c4;
+    --img-bg: #ffffff;
+    --btn-bg: #1d2027;
+    --btn-hover: #262a33;
+    --danger: #e08a8a;
+  }
+
+  :root[data-theme="light"] {
+    --bg: #f5f6f8;
+    --panel-bg: #ffffff;
+    --border: #e2e4e9;
+    --text-primary: #1c1e24;
+    --text-secondary: #5b5e68;
+    --text-muted: #9296a1;
+    --accent: #2f6fb0;
+    --img-bg: #ffffff;
+    --btn-bg: #eef0f3;
+    --btn-hover: #e2e4e9;
+    --danger: #c0392b;
+  }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    padding: 20px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 50px;
+    color: var(--text-primary);
+  }
+
+  .panels {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    width: 99%;
+    max-width: 2000px;
+    justify-content: center;
+  }
+
+  .panel {
+    flex: 1;
+    min-width: 0; 
+  }
+
+  .var-select {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+    justify-content: center;
+  }
+
+  .var-select button {
+    padding: 6px 12px;
+    font-size: 15px;
+  }
+
+  .var-select button.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .image-wrap {
+    width: 100%;
+    aspect-ratio: 1.39508032;
+    background: var(--img-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    padding: 10px
+  }
+
+  .image-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: right center;
+    display: block;
+  }
+
+  .panel-label {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  .missing {
+    color: var(--danger);
+    text-align: center;
+    margin-top: 6px;
+    font-size: 12px;
+    min-height: 16px;
+  }
+
+  .timestamp {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+  }
+
+  .controls {
+    width: 95%;
+    max-width: 1300px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px auto 0;
+  }
+
+  button {
+    background: var(--btn-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.12s ease;
+  }
+  button:hover { background: var(--btn-hover); }
+  button:active { transform: scale(0.97); }
+
+  #prevBtn, #nextBtn {
+    width: 90px;
+    height: 36px;
+    line-height: 1;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  input[type="range"] {
+    flex: 1;
+  }
+
+  .step-label {
+    min-width: 70px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+
+<h1>Synoptic charts</h1>
+
+<div class="panels">
+  <div class="panel">
+    <div class="var-select" id="varSelectLeft"></div>
+    <div class="image-wrap">
+      <img id="mapImgLeft" src="" alt="Forecast map left">
+    </div>
+    <div class="panel-label" id="panelLabelLeft"></div>
+    <div class="missing" id="missingLeft"></div>
+  </div>
+
+  <div class="panel">
+    <div class="var-select" id="varSelectRight"></div>
+    <div class="image-wrap">
+      <img id="mapImgRight" src="" alt="Forecast map right">
+    </div>
+    <div class="panel-label" id="panelLabelRight"></div>
+    <div class="missing" id="missingRight"></div>
+  </div>
+</div>
+
+<div class="timestamp" id="timestamp"></div>
+
+<div class="controls">
+  <button id="prevBtn">◀ Step</button>
+  <input type="range" id="scrub" min="0" max="0" value="0" step="1">
+  <button id="nextBtn">Step ▶</button>
+  <span class="step-label" id="stepLabel">0 / 0</span>
+</div>
+
+<script>
+  // ---- CONFIGURE THESE TO MATCH YOUR DATA ----
+  const IMAGE_FOLDER = 'Figures/forecast_synoptic/'; // default folder, used unless a variable below sets its own "folder"
+  const DATA_PREFIX = 'ERA5'; // default folder, used unless a variable below sets its own "folder"
+
+  // Each variable needs:
+  //   key    - must match the {VAR} portion of the filename exactly (ERA5_{key}_...)
+  //   label  - what's shown to the user in the selector buttons (can differ from key)
+  //   folder - optional; overrides IMAGE_FOLDER for this variable if it lives elsewhere
+  const VARIABLES = [
+    { key: 'MSLP',    label: 'Mean sea-level pressure' },
+    { key: '200hPa',  label: 'upper-level winds' },
+    { key: 'B1',     label: 'Satellite images', folder: 'Figures/satellite/', data_prefix: 'Gridsat' },
+  ];
+
+  const START_DATE = '2025-10-25T00:00'; // first forecast timestamp
+  const END_DATE   = '2025-10-27T00:00'; // last forecast timestamp
+  const INTERVAL_HOURS = 6;
+
+  // Which variables each panel starts on (use the "key" value)
+  const DEFAULT_LEFT_VAR = VARIABLES[0].key;
+  const DEFAULT_RIGHT_VAR = (VARIABLES[1] || VARIABLES[0]).key;
+
+  function getVariable(key) {
+    return VARIABLES.find(v => v.key === key);
+  } 
+
+// Filename pattern: {data_prefix}_{VAR}_{YYYY-MM-DD}_{HH:00}.png
+  function buildFilename(variableKey, date) {
+    const y = date.getUTCFullYear();
+    const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(date.getUTCDate()).padStart(2, '0');
+    const h = String(date.getUTCHours()).padStart(2, '0');
+    const variable = getVariable(variableKey);
+    const data_prefix = variable.data_prefix || DATA_PREFIX;
+	  return `${data_prefix}_${variableKey}_${y}-${m}-${d}_${h}:00.png`;
+  }
+
+  function buildTimestamps(startStr, endStr, intervalHours) {
+    const timestamps = [];
+    let t = new Date(startStr + 'Z');
+    const end = new Date(endStr + 'Z');
+    while (t <= end) {
+      timestamps.push(new Date(t));
+      t = new Date(t.getTime() + intervalHours * 3600 * 1000);
+    }
+    return timestamps;
+  }
+
+  const TIMESTAMPS = buildTimestamps(START_DATE, END_DATE, INTERVAL_HOURS);
+
+  let currentStep = 0;
+  let leftVar = DEFAULT_LEFT_VAR;
+  let rightVar = DEFAULT_RIGHT_VAR;
+
+  const scrub = document.getElementById('scrub');
+  const stepLabel = document.getElementById('stepLabel');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const timestampEl = document.getElementById('timestamp');
+
+  scrub.max = TIMESTAMPS.length - 1;
+
+  function formatTimestamp(date) {
+    const y = date.getUTCFullYear();
+    const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(date.getUTCDate()).padStart(2, '0');
+    const h = String(date.getUTCHours()).padStart(2, '0');
+    return `${y}-${m}-${d} ${h}:00 UTC`;
+  }
+
+  function buildVarSelector(containerId, defaultKey, onSelect) {
+    const container = document.getElementById(containerId);
+    VARIABLES.forEach(v => {
+      const btn = document.createElement('button');
+      btn.textContent = v.label;
+      if (v.key === defaultKey) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        onSelect(v.key);
+        render();
+      });
+      container.appendChild(btn);
+    });
+  }
+
+  buildVarSelector('varSelectLeft', leftVar, (v) => { leftVar = v; });
+  buildVarSelector('varSelectRight', rightVar, (v) => { rightVar = v; });
+
+  function renderPanel(variableKey, imgId, labelId, missingId) {
+    const date = TIMESTAMPS[currentStep];
+    const variable = getVariable(variableKey);
+    const folder = variable.folder || IMAGE_FOLDER;
+    const filename = buildFilename(variableKey, date);
+    const img = document.getElementById(imgId);
+    const label = document.getElementById(labelId);
+    const missing = document.getElementById(missingId);
+    img.src = folder + filename;
+    label.textContent = variable.label;
+    missing.textContent = '';
+    img.onerror = () => { missing.textContent = `Image not found: ${folder + filename}`; };
+  }
+
+  function render() {
+    const date = TIMESTAMPS[currentStep];
+    timestampEl.textContent = formatTimestamp(date);
+    scrub.value = currentStep;
+    stepLabel.textContent = `${currentStep} / ${TIMESTAMPS.length - 1}`;
+    renderPanel(leftVar, 'mapImgLeft', 'panelLabelLeft', 'missingLeft');
+    renderPanel(rightVar, 'mapImgRight', 'panelLabelRight', 'missingRight');
+  }
+
+  function goToStep(step) {
+    currentStep = Math.max(0, Math.min(TIMESTAMPS.length - 1, step));
+    render();
+  }
+
+  prevBtn.addEventListener('click', () => goToStep(currentStep - 1));
+  nextBtn.addEventListener('click', () => goToStep(currentStep + 1));
+  scrub.addEventListener('input', () => goToStep(Number(scrub.value)));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') goToStep(currentStep + 1);
+    if (e.key === 'ArrowLeft') goToStep(currentStep - 1);
+  });
+
+  render();
+
+  // ---- Theme inheritance from parent page (template.html) ----
+  // 1) Initial theme via ?theme=light|dark query param set by the parent when it creates this iframe.
+  const params = new URLSearchParams(window.location.search);
+  const initialTheme = params.get('theme');
+  if (initialTheme === 'light' || initialTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', initialTheme);
+  }
+
+  // 2) Live updates via postMessage, so toggling theme in the parent
+  //    updates this page immediately without reloading the iframe.
+  window.addEventListener('message', (event) => {
+    if (event.data && (event.data.theme === 'light' || event.data.theme === 'dark')) {
+      document.documentElement.setAttribute('data-theme', event.data.theme);
+    }
+  });
+</script>
+
+</body>
+</html>
